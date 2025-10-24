@@ -90,6 +90,7 @@ const Masonry: React.FC<MasonryProps> = ({
 
   const [containerRef, { width }] = useMeasure<HTMLDivElement>();
   const [imagesReady, setImagesReady] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const getInitialPosition = (item: GridItem) => {
     const containerRect = containerRef.current?.getBoundingClientRect();
@@ -213,24 +214,42 @@ const Masonry: React.FC<MasonryProps> = ({
     }
   };
 
+  const handleImageError = (id: string) => {
+    setImageErrors(prev => new Set([...prev, id]));
+    console.error(`Failed to load image for item: ${id}`);
+  };
+
   return (
     <div ref={containerRef} className="relative w-full h-full">
       {grid.map(item => (
         <div
           key={item.id}
           data-key={item.id}
-          className="absolute box-content"
+          className="absolute box-content cursor-pointer"
           style={{ willChange: 'transform, width, height, opacity' }}
           onClick={() => window.open(item.url, '_blank', 'noopener')}
           onMouseEnter={e => handleMouseEnter(item.id, e.currentTarget)}
           onMouseLeave={e => handleMouseLeave(item.id, e.currentTarget)}
         >
-          <div
-            className="relative w-full h-full bg-cover bg-center rounded-[10px] shadow-[0px_10px_50px_-10px_rgba(0,0,0,0.2)] uppercase text-[10px] leading-[10px]"
-            style={{ backgroundImage: `url(${item.img})` }}
-          >
+          <div className="relative w-full h-full rounded-[10px] shadow-[0px_10px_50px_-10px_rgba(0,0,0,0.2)] overflow-hidden">
+            <img
+              src={item.img}
+              alt={`Gallery item ${item.id}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              crossOrigin="anonymous"
+              onError={() => handleImageError(item.id)}
+              style={{
+                display: imageErrors.has(item.id) ? 'none' : 'block'
+              }}
+            />
+            {imageErrors.has(item.id) && (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-sm">
+                Image failed to load
+              </div>
+            )}
             {colorShiftOnHover && (
-              <div className="color-overlay absolute inset-0 rounded-[10px] bg-gradient-to-tr from-pink-500/50 to-sky-500/50 opacity-0 pointer-events-none" />
+              <div className="color-overlay absolute inset-0 bg-gradient-to-tr from-pink-500/50 to-sky-500/50 opacity-0 pointer-events-none" />
             )}
           </div>
         </div>
